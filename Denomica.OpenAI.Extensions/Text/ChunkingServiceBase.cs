@@ -26,8 +26,12 @@ namespace Denomica.OpenAI.Extensions.Text
                     nextChunk = await GetNextChunkAsync(reader);
                     if (null != nextChunk)
                     {
-                        if (chunkBuilder.Length + nextChunk.Length <= MaxChunkSize)
+                        if ((chunkBuilder.Length + nextChunk.Length <= MaxChunkSize) || (chunkBuilder.Length == 0))
                         {
+                            // If the next chunk fits into the current chunk, we append it to the current chunk.
+                            // However, if the builder is empty, meaning that we are processing the first chunk,
+                            // then we also append it to the current chunk. If that will cause problems, then
+                            // the chunker implemantion needs to change.
                             chunkBuilder.Append(nextChunk);
                         }
                         else

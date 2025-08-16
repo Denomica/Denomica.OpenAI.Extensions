@@ -67,7 +67,8 @@ namespace Denomica.OpenAI.Extensions.Embeddings
                 results.Add(embedding);
             }
 
-            return results.Combine() ?? new EmbeddingResponse();
+            var aggregator = this.Provider.GetService<IEmbeddingAggregationService>() ?? new WeightedAverageAggregationService();
+            return await aggregator.AggregateAsync(results) ?? new EmbeddingResponse();
         }
     }
 }

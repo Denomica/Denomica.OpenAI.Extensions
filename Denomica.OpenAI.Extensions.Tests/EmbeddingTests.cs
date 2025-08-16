@@ -7,16 +7,16 @@ namespace Denomica.OpenAI.Extensions.Tests;
 public class EmbeddingTests
 {
     [TestMethod]
-    public void CombineEmbeddings01()
+    public async Task CombineEmbeddings01()
     {
         var embeddings = new List<EmbeddingResponse>();
-        var result = embeddings.Combine();
+        var result = await this.CombineAsync(embeddings);
         Assert.IsNull(result);
     }
 
     [TestMethod]
     [ExpectedException(typeof(Exception), AllowDerivedTypes = true)]
-    public void CombineEmbeddings02()
+    public async Task CombineEmbeddings02()
     {
         var embeddings = new List<EmbeddingResponse>
         {
@@ -34,12 +34,12 @@ public class EmbeddingTests
             }
         };
 
-        var result = embeddings.Combine();
+        var result = await this.CombineAsync(embeddings);
     }
 
     [TestMethod]
     [ExpectedException(typeof(Exception), AllowDerivedTypes = true)]
-    public void CombineEmbeddings03()
+    public async Task CombineEmbeddings03()
     {
         var embeddings = new List<EmbeddingResponse>
         {
@@ -56,11 +56,11 @@ public class EmbeddingTests
                 Usage = new Usage { TotalTokens = 2 }
             }
         };
-        var result = embeddings.Combine();
+        var result = await this.CombineAsync(embeddings);
     }
 
     [TestMethod]
-    public void CombineEmbeddings04()
+    public async Task CombineEmbeddings04()
     {
         var embeddings = new List<EmbeddingResponse>
         {
@@ -78,7 +78,7 @@ public class EmbeddingTests
             }
         };
 
-        var result = embeddings.Combine();
+        var result = await this.CombineAsync(embeddings);
         Assert.IsNotNull(result);
         Assert.AreEqual(3, result.Vector[0]);
         Assert.AreEqual(5, result.Vector[1]);
@@ -87,7 +87,7 @@ public class EmbeddingTests
 
     [TestMethod]
     [ExpectedException(typeof(Exception), AllowDerivedTypes = true)]
-    public void CombineEmbeddings05()
+    public async Task CombineEmbeddings05()
     {
         var embeddings = new List<EmbeddingResponse>
         {
@@ -104,12 +104,12 @@ public class EmbeddingTests
                 Usage = new Usage { TotalTokens = 1 } // TotalTokens is null
             }
         };
-        var result = embeddings.Combine();
+        var result = await this.CombineAsync(embeddings);
     }
 
     [TestMethod]
     [ExpectedException(typeof(Exception), AllowDerivedTypes = true)]
-    public void CombineEmbeddings06()
+    public async Task CombineEmbeddings06()
     {
         var embeddings = new List<EmbeddingResponse>
         {
@@ -126,6 +126,14 @@ public class EmbeddingTests
                 Usage = new Usage { TotalTokens = null }
             }
         };
-        var result = embeddings.Combine();
+        var result = await this.CombineAsync(embeddings);
+    }
+
+
+
+    private Task<EmbeddingResponse?> CombineAsync(IEnumerable<EmbeddingResponse>? embeddings)
+    {
+        var aggregator = new WeightedAverageAggregationService();
+        return aggregator.AggregateAsync(embeddings);
     }
 }

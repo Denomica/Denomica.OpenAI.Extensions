@@ -105,6 +105,68 @@ namespace Denomica.OpenAI.Extensions.Configuration
         }
 
         /// <summary>
+        /// Configures the builder to use a custom implementation of <see cref="IChunkingService"/>.
+        /// </summary>
+        /// <param name="factory">A factory function that provides an instance of <see cref="IChunkingService"/>. The function receives an
+        /// <see cref="IServiceProvider"/> to resolve dependencies.</param>
+        /// <returns>The current instance of <see cref="OpenAIConfigurationBuilder"/> to allow method chaining.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="factory"/> is <see langword="null"/> or if the <c>Services</c> property of the
+        /// builder is <see langword="null"/>.</exception>
+        public OpenAIConfigurationBuilder WithChunkingService(Func<IServiceProvider, IChunkingService> factory)
+        {
+            if (null == this.Services)
+            {
+                throw new ArgumentNullException(nameof(this.Services));
+            }
+            if (null == factory)
+            {
+                throw new ArgumentNullException(nameof(factory));
+            }
+            this.Services.AddScoped<IChunkingService>(factory);
+
+            return this;
+        }
+
+        /// <summary>
+        /// Configures the builder to use the specified embedding aggregation service implementation.
+        /// </summary>
+        /// <remarks>This method registers the specified implementation of <see
+        /// cref="IEmbeddingAggregationService"/>  in the dependency injection container with a scoped lifetime. Use
+        /// this method to customize the  behavior of embedding aggregation in your application.</remarks>
+        /// <typeparam name="TAggregationService">The type of the embedding aggregation service to register. This type must implement  <see
+        /// cref="IEmbeddingAggregationService"/> and have a parameterless constructor or be resolvable  through
+        /// dependency injection.</typeparam>
+        /// <returns>The current instance of <see cref="OpenAIConfigurationBuilder"/> to allow for method chaining.</returns>
+        public OpenAIConfigurationBuilder WithEmbeddingAggregationService<TAggregationService>() where TAggregationService : class, IEmbeddingAggregationService
+        {
+            this.Services.AddScoped<IEmbeddingAggregationService, TAggregationService>();
+            return this;
+        }
+
+        /// <summary>
+        /// Configures the builder to use a custom factory for creating instances of <see
+        /// cref="IEmbeddingAggregationService"/>.
+        /// </summary>
+        /// <param name="factory">A factory function that takes an <see cref="IServiceProvider"/> and returns an instance of <see
+        /// cref="IEmbeddingAggregationService"/>.</param>
+        /// <returns>The current <see cref="OpenAIConfigurationBuilder"/> instance, allowing for method chaining.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="factory"/> is <see langword="null"/> or if the <c>Services</c> property of the
+        /// builder is <see langword="null"/>.</exception>
+        public OpenAIConfigurationBuilder WithEmbeddingAggregationService(Func<IServiceProvider, IEmbeddingAggregationService> factory)
+        {
+            if (null == this.Services)
+            {
+                throw new ArgumentNullException(nameof(this.Services));
+            }
+            if (null == factory)
+            {
+                throw new ArgumentNullException(nameof(factory));
+            }
+            this.Services.AddScoped<IEmbeddingAggregationService>(factory);
+            return this;
+        }
+
+        /// <summary>
         /// Configures the embedding model deployment options and registers the necessary services for embedding
         /// functionality.
         /// </summary>

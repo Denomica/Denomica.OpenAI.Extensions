@@ -6,8 +6,6 @@ using OpenAI.Chat;
 
 var provider = new ServiceCollection()
     .AddOpenAIExtensions()
-    //.WithChunkingService<WordChunker>()
-    .WithChunkingService<LineChunkingService>()
     .WithChatModel((opt, sp) =>
     {
         opt.Endpoint = $"https://{args[0]}.openai.azure.com";
@@ -20,7 +18,12 @@ var provider = new ServiceCollection()
         opt.ApiKey = args[1];
         opt.Name = args[3];
     })
+    .WithChunkingService(sp =>
+    {
+        return new LineChunkingService { MaxChunkSize = 100 };
+    })
     .Services
+    
 
     .BuildServiceProvider();
 

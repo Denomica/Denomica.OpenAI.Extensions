@@ -44,6 +44,12 @@ var embedding = await embeddingProvider.GenerateEmbeddingAsync("Hello World!");
 
 The main hihglights in the published versions are outlined below.
 
+### v1.0.0-beta.5
+
+- Refactored the embedding aggregation logic into a service to enable you to customize aggregation logic.
+- Implemented a `WeightedAverageEmbeddingAggregator` service that aggregates embeddings using a weighted average approach based on the number of tokens consumed by each chunk.
+- The `WeightedAverageEmbeddingAggregator` is the default aggregator used by the `EmbeddingProvider` if no other aggregator is configured.
+
 ### v1.0.0-beta.4
 
 - Changed service registration so that models registered without a key also registers associated services without a key instead of registering them with the model deployment name as key.
