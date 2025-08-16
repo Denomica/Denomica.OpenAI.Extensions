@@ -1,8 +1,11 @@
-﻿using Denomica.OpenAI.Extensions.Text;
+﻿using Denomica.OpenAI.Extensions.Configuration;
+using Denomica.OpenAI.Extensions.Text;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using OpenAI.Embeddings;
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -24,19 +27,25 @@ namespace Denomica.OpenAI.Extensions.Embeddings
         /// langword="null"/>.</param>
         /// <param name="sp">The <see cref="IServiceProvider"/> instance used to resolve dependencies. Cannot be <see langword="null"/>.</param>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="client"/> or <paramref name="sp"/> is <see langword="null"/>.</exception>
-        public EmbeddingProvider(EmbeddingClient client, IServiceProvider sp)
+        public EmbeddingProvider(EmbeddingClient client, IServiceProvider sp, IOptions<EmbeddingModelDeploymentOptions> options)
         {
             this.Client = client ?? throw new ArgumentNullException(nameof(client));
             this.Provider = sp ?? throw new ArgumentNullException(nameof(sp));
+            this.Options = options?.Value ?? throw new ArgumentNullException(nameof(options));
         }
 
         private readonly IServiceProvider Provider;
+        private readonly EmbeddingModelDeploymentOptions Options;
 
         /// <summary>
         /// Gets the <see cref="EmbeddingClient"/> instance used to interact with the embedding service.
         /// </summary>
         public EmbeddingClient Client { get; private set; }
 
+        /// <summary>
+        /// Gets the name of the embedding model deployment associated with the current options.
+        /// </summary>
+        public string? DeploymentName => this.Options.Name;
 
         /// <summary>
         /// Generates an embedding for the specified input text by processing it in chunks.

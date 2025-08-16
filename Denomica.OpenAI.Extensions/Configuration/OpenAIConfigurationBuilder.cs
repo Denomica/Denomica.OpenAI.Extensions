@@ -84,7 +84,7 @@ namespace Denomica.OpenAI.Extensions.Configuration
                     .AddKeyedScoped<ChatProvider>(options.Name, (sp, key) =>
                     {
                         var client = sp.GetRequiredKeyedService<ChatClient>(key);
-                        return new ChatProvider(client, sp);
+                        return new ChatProvider(client, sp, Options.Create(options));
                     })
             );
         }
@@ -140,7 +140,7 @@ namespace Denomica.OpenAI.Extensions.Configuration
                     .AddKeyedScoped<EmbeddingProvider>(options.Name, (sp, key) =>
                     {
                         var client = sp.GetRequiredKeyedService<EmbeddingClient>(key);
-                        return new EmbeddingProvider(client, sp);
+                        return new EmbeddingProvider(client, sp, Options.Create(options));
                     })
             );
         }

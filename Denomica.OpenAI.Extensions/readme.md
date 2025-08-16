@@ -28,13 +28,13 @@ var provider = new ServiceCollection()
     .BuildServiceProvider();
 
 var chatProvider = provider
-    .GetRequiredKeyedService<ChatProvider>("[name of your chat model deployment]");
+    .GetRequiredKeyedService<ChatProvider>([name of your chat model deployment]);
 var chatResult = await chatProvider.Client.CompleteChatAsync(
     new UserChatMessage("Hi! Can I call you Kevin?")
 );
 var chatContent = chatResult.GetContent().ToList();
 
-var embeddingProvider = provider.GetRequiredKeyedService<EmbeddingProvider>(args[3]);
+var embeddingProvider = provider.GetRequiredKeyedService<EmbeddingProvider>([name of your embedding model deployment]);
 var embedding = await embeddingProvider.GenerateEmbeddingAsync("Hello World!");
 
 ```
@@ -42,6 +42,14 @@ var embedding = await embeddingProvider.GenerateEmbeddingAsync("Hello World!");
 ## Version Highlights
 
 The main hihglights in the published versions are outlined below.
+
+### v1.0.0-beta.3
+
+- Added `DeploymentName` property to the `EmbeddingProvider` and `ChatProvider` classes, which returns the name of the model deployment used by the provider.
+
+### v1.0.0-beta.2
+
+- Fixed a typo in the readme file.
 
 ### v1.0.0-beta.1
 
