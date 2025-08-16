@@ -1,6 +1,8 @@
 # Denomica.OpenAI.Extensions
 
-Denomica.OpenAI.Extensions is a library that provides extension methods for working with types in [`Azure.AI.OpenAI`](https://www.nuget.org/packages/Azure.AI.OpenAI).
+`Denomica.OpenAI.Extensions` is a library that provides extension methods for working with types in [`Azure.AI.OpenAI`](https://www.nuget.org/packages/Azure.AI.OpenAI).
+
+The library originally started with providing functionality for chunking up text into smaller pieces, which is useful for generating embeddings with the OpenAI API. But it will evolve over time to include additional features and utilities for working with OpenAI's API in [Azure AI Foundry](https://azure.microsoft.com/products/ai-foundry).
 
 ## Getting Started
 
@@ -27,14 +29,13 @@ var provider = new ServiceCollection()
     .Services
     .BuildServiceProvider();
 
-var chatProvider = provider
-    .GetRequiredKeyedService<ChatProvider>([name of your chat model deployment]);
+var chatProvider = provider.GetRequiredService<ChatProvider>();
 var chatResult = await chatProvider.Client.CompleteChatAsync(
     new UserChatMessage("Hi! Can I call you Kevin?")
 );
 var chatContent = chatResult.GetContent().ToList();
 
-var embeddingProvider = provider.GetRequiredKeyedService<EmbeddingProvider>([name of your embedding model deployment]);
+var embeddingProvider = provider.GetRequiredService<EmbeddingProvider>();
 var embedding = await embeddingProvider.GenerateEmbeddingAsync("Hello World!");
 
 ```
@@ -42,6 +43,11 @@ var embedding = await embeddingProvider.GenerateEmbeddingAsync("Hello World!");
 ## Version Highlights
 
 The main hihglights in the published versions are outlined below.
+
+### v1.0.0-beta.4
+
+- Changed service registration so that models registered without a key also registers associated services without a key instead of registering them with the model deployment name as key.
+- Changed `EmbeddingResponse.Embedding` to `EmbeddingResponse.Vector`.
 
 ### v1.0.0-beta.3
 

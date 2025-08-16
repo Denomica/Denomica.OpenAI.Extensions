@@ -33,11 +33,11 @@ namespace Denomica.OpenAI.Extensions.Embeddings
             if(embeddings?.Any() == true)
             {
                 var first = embeddings.First();
-                var length = first.Embedding.Length;
+                var length = first.Vector.Length;
                 var result = new float[length];
                 foreach(var embedding in embeddings)
                 {
-                    if(embedding.Embedding.Length != length)
+                    if(embedding.Vector.Length != length)
                     {
                         throw new Exception("All embeddings in the given list must have the same number of dimensions.");
                     }
@@ -49,7 +49,7 @@ namespace Denomica.OpenAI.Extensions.Embeddings
 
                     for (int i = 0; i < length; i++)
                     {
-                        result[i] += embedding.Embedding[i] * embedding.Usage.TotalTokens ?? throw new Exception("TotalTokens must not be null.");
+                        result[i] += embedding.Vector[i] * embedding.Usage.TotalTokens ?? throw new Exception("TotalTokens must not be null.");
                     }
                 }
 
@@ -62,7 +62,7 @@ namespace Denomica.OpenAI.Extensions.Embeddings
                 return new EmbeddingResponse
                 {
                     Model = first.Model,
-                    Embedding = result,
+                    Vector = result,
                     Usage = new Usage
                     {
                         TotalTokens = totalTokens
@@ -122,7 +122,7 @@ namespace Denomica.OpenAI.Extensions.Embeddings
             var embedding = JsonSerializer.Deserialize<EmbeddingResponse>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
             if(null != embedding)
             {
-                embedding.Embedding = embeddingResult.Value.ToFloats().ToArray();
+                embedding.Vector = embeddingResult.Value.ToFloats().ToArray();
                 return embedding;
             }
 

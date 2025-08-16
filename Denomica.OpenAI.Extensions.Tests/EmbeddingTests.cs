@@ -23,13 +23,13 @@ public class EmbeddingTests
             new EmbeddingResponse
             {
                 Model = "model1",
-                Embedding = new float[] { 1, 2, 3 },
+                Vector = new float[] { 1, 2, 3 },
                 Usage = new Usage { TotalTokens = 1 }
             },
             new EmbeddingResponse
             {
                 Model = "model1",
-                Embedding = new float[] { 4, 5, 6, 7 },
+                Vector = new float[] { 4, 5, 6, 7 },
                 Usage = new Usage { TotalTokens = 2 }
             }
         };
@@ -46,13 +46,13 @@ public class EmbeddingTests
             new EmbeddingResponse
             {
                 Model = "model1",
-                Embedding = new float[] { 1, 2, 3 },
+                Vector = new float[] { 1, 2, 3 },
                 Usage = new Usage { TotalTokens = 1 }
             },
             new EmbeddingResponse
             {
                 Model = "model2",
-                Embedding = new float[] { 4, 5, 6 },
+                Vector = new float[] { 4, 5, 6 },
                 Usage = new Usage { TotalTokens = 2 }
             }
         };
@@ -67,22 +67,22 @@ public class EmbeddingTests
             new EmbeddingResponse
             {
                 Model = "model1",
-                Embedding = new float[] { 1, 3, 5 },
+                Vector = new float[] { 1, 3, 5 },
                 Usage = new Usage { TotalTokens = 1 }
             },
             new EmbeddingResponse
             {
                 Model = "model1",
-                Embedding = new float[] { 4, 6, 8 },
+                Vector = new float[] { 4, 6, 8 },
                 Usage = new Usage { TotalTokens = 2 }
             }
         };
 
         var result = embeddings.Combine();
         Assert.IsNotNull(result);
-        Assert.AreEqual(3, result.Embedding[0]);
-        Assert.AreEqual(5, result.Embedding[1]);
-        Assert.AreEqual(7, result.Embedding[2]);
+        Assert.AreEqual(3, result.Vector[0]);
+        Assert.AreEqual(5, result.Vector[1]);
+        Assert.AreEqual(7, result.Vector[2]);
     }
 
     [TestMethod]
@@ -94,13 +94,13 @@ public class EmbeddingTests
             new EmbeddingResponse
             {
                 Model = "model1",
-                Embedding = new float[] { 1, 2, 3 },
+                Vector = new float[] { 1, 2, 3 },
                 Usage = new Usage { TotalTokens = 1 }
             },
             new EmbeddingResponse
             {
                 Model = string.Empty,
-                Embedding = new float[] { 4, 5, 6 },
+                Vector = new float[] { 4, 5, 6 },
                 Usage = new Usage { TotalTokens = 1 } // TotalTokens is null
             }
         };
@@ -116,13 +116,13 @@ public class EmbeddingTests
             new EmbeddingResponse
             {
                 Model = "model1",
-                Embedding = new float[] { 1, 2, 3 },
+                Vector = new float[] { 1, 2, 3 },
                 Usage = new Usage { TotalTokens = 1 }
             },
             new EmbeddingResponse
             {
                 Model = "model1",
-                Embedding = new float[] { 4, 5, 6 },
+                Vector = new float[] { 4, 5, 6 },
                 Usage = new Usage { TotalTokens = null }
             }
         };

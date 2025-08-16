@@ -24,7 +24,7 @@ var provider = new ServiceCollection()
 
     .BuildServiceProvider();
 
-var chatProvider = provider.GetRequiredKeyedService<ChatProvider>(args[2]);
+var chatProvider = provider.GetRequiredService<ChatProvider>();
 var chatResult = await chatProvider.Client.CompleteChatAsync(
     new SystemChatMessage("You are the underboss to the user writing to you. You must always address them as boss. Also, use typical lingo that was used by mafia members in the 60s."),
     new UserChatMessage("Hi! Can I call you Kevin?")
@@ -35,7 +35,7 @@ var chatResponse = chatResult.GetRawResponse();
 var chatJson = chatResponse.Content.ToString();
 Console.WriteLine(chatJson);
 
-var embeddingProvider = provider.GetRequiredKeyedService<EmbeddingProvider>(args[3]);
+var embeddingProvider = provider.GetRequiredService<EmbeddingProvider>();
 var embedding = await embeddingProvider.GenerateEmbeddingAsync("Hello World! This is a test of the embedding generation service. It should return an embedding vector for the given text input.");
 var tokens = embedding.Usage.TotalTokens;
 //var chunker = provider.GetChunkingService();

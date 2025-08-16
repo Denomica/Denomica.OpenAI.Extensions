@@ -69,22 +69,24 @@ namespace Denomica.OpenAI.Extensions.Configuration
                 throw new ArgumentNullException(nameof(configureOptions));
             }
 
-            var options = new ChatModelDeploymentOptions();
-            configureOptions(options, this.Services.BuildServiceProvider());
-
             return new OpenAIConfigurationBuilder(
                 this.Services
-                    .AddSingleton<IOptions<ChatModelDeploymentOptions>>(Options.Create(options))
-                    .AddKeyedScoped<ChatClient>(options.Name, (sp, key) =>
+                    .AddOptions<ChatModelDeploymentOptions>()
+                    .Configure<IServiceProvider>((opt, sp) =>
+                    {
+                        configureOptions(opt, sp);
+                    }).Services
+                    .AddScoped<ChatClient>(sp =>
                     {
                         var opt = sp.GetRequiredService<IOptions<ChatModelDeploymentOptions>>().Value;
                         var client = this.CreateOpenAIClient(opt);
-                        return client.GetChatClient($"{key}");
+                        return client.GetChatClient(opt.Name);
                     })
-                    .AddKeyedScoped<ChatProvider>(options.Name, (sp, key) =>
+                    .AddScoped<ChatProvider>(sp =>
                     {
-                        var client = sp.GetRequiredKeyedService<ChatClient>(key);
-                        return new ChatProvider(client, sp, Options.Create(options));
+                        var opt = sp.GetRequiredService<IOptions<ChatModelDeploymentOptions>>().Value;
+                        var client = sp.GetRequiredService<ChatClient>();
+                        return new ChatProvider(client, sp, Options.Create(opt));
                     })
             );
         }
@@ -125,22 +127,24 @@ namespace Denomica.OpenAI.Extensions.Configuration
                 throw new ArgumentNullException(nameof(configureOptions));
             }
 
-            EmbeddingModelDeploymentOptions options = new EmbeddingModelDeploymentOptions();
-            configureOptions(options, this.Services.BuildServiceProvider());
-
             return new OpenAIConfigurationBuilder(
                 this.Services
-                    .AddSingleton<IOptions<EmbeddingModelDeploymentOptions>>(Options.Create(options))
-                    .AddKeyedScoped<EmbeddingClient>(options.Name, (sp, key) =>
+                    .AddOptions<EmbeddingModelDeploymentOptions>()
+                    .Configure<IServiceProvider>((opt, sp) =>
+                    {
+                        configureOptions(opt, sp);
+                    }).Services
+                    .AddScoped<EmbeddingClient>(sp =>
                     {
                         var opt = sp.GetRequiredService<IOptions<EmbeddingModelDeploymentOptions>>().Value;
                         var client = new AzureOpenAIClient(new Uri(opt.Endpoint), new ApiKeyCredential(opt.ApiKey ?? ""));
-                        return client.GetEmbeddingClient($"{key}");
+                        return client.GetEmbeddingClient(opt.Name);
                     })
-                    .AddKeyedScoped<EmbeddingProvider>(options.Name, (sp, key) =>
+                    .AddScoped<EmbeddingProvider>(sp =>
                     {
-                        var client = sp.GetRequiredKeyedService<EmbeddingClient>(key);
-                        return new EmbeddingProvider(client, sp, Options.Create(options));
+                        var opt = sp.GetRequiredService<IOptions<EmbeddingModelDeploymentOptions>>().Value;
+                        var client = sp.GetRequiredService<EmbeddingClient>();
+                        return new EmbeddingProvider(client, sp, Options.Create(opt));
                     })
             );
         }
