@@ -1,0 +1,30 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <Nullable>enable</Nullable>
+	  <Title>Denomica.OpenAI.Extensions</Title>
+	  <Description>Denomica.OpenAI.Extensions is a library that provides extension methods for working with types in Azure.AI.OpenAI.</Description>
+	  <Copyright>Copyright (c) 2025 Denomica Oy</Copyright>
+	  <PackageProjectUrl>https://github.com/Denomica/Denomica.OpenAI.Extensions</PackageProjectUrl>
+	  <RepositoryUrl>https://github.com/Denomica/Denomica.OpenAI.Extensions</RepositoryUrl>
+	  <RepositoryType>git</RepositoryType>
+	  <PackageLicenseExpression>MIT</PackageLicenseExpression>
+	  <Version>1.0.0-beta.1</Version>
+	  <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+	  <PackageReadmeFile>readme.md</PackageReadmeFile>
+  </PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Azure.AI.OpenAI" Version="2.1.0" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
+		<PackageReference Include="Microsoft.Extensions.Options" Version="8.0.0" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <None Update="readme.md">
+	    <Pack>True</Pack>
+	    <PackagePath>\</PackagePath>
+	  </None>
+	</ItemGroup>
+</Project>

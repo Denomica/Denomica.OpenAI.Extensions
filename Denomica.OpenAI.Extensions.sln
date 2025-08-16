@@ -1,0 +1,47 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Denomica.OpenAI.Extensions", "Denomica.OpenAI.Extensions\Denomica.OpenAI.Extensions.csproj", "{CF9FB453-3EE6-4B1D-8504-584C4B9F41A2}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Test Apps", "Test Apps", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{413A780F-9242-4232-8C02-B51C63A06678}"
+	ProjectSection(SolutionItems) = preProject
+		.gitignore = .gitignore
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenAIConsole", "OpenAIConsole\OpenAIConsole.csproj", "{8E3F580F-AA8C-4DAB-AB35-1F21C4232EE8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Denomica.OpenAI.Extensions.Tests", "Denomica.OpenAI.Extensions.Tests\Denomica.OpenAI.Extensions.Tests.csproj", "{DBB720AA-E82C-4068-8D33-44452D512C56}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{CF9FB453-3EE6-4B1D-8504-584C4B9F41A2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CF9FB453-3EE6-4B1D-8504-584C4B9F41A2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CF9FB453-3EE6-4B1D-8504-584C4B9F41A2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CF9FB453-3EE6-4B1D-8504-584C4B9F41A2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8E3F580F-AA8C-4DAB-AB35-1F21C4232EE8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8E3F580F-AA8C-4DAB-AB35-1F21C4232EE8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8E3F580F-AA8C-4DAB-AB35-1F21C4232EE8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8E3F580F-AA8C-4DAB-AB35-1F21C4232EE8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DBB720AA-E82C-4068-8D33-44452D512C56}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DBB720AA-E82C-4068-8D33-44452D512C56}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DBB720AA-E82C-4068-8D33-44452D512C56}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DBB720AA-E82C-4068-8D33-44452D512C56}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{8E3F580F-AA8C-4DAB-AB35-1F21C4232EE8} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {94A030E8-FA7E-44BD-BE94-CB9D7B31349F}
+	EndGlobalSection
+EndGlobal
