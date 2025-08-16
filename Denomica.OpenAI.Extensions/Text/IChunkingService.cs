@@ -14,7 +14,7 @@ namespace Denomica.OpenAI.Extensions.Text
         /// <summary>
         /// Sets or returns the maximum chunk length returned by the chunking service.
         /// </summary>
-        int MaxChunkLength { get; set; }
+        int MaxChunkSize { get; set; }
 
         /// <summary>
         /// Returns a collection of strings representing

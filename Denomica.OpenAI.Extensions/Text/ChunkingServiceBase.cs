@@ -12,7 +12,7 @@ namespace Denomica.OpenAI.Extensions.Text
     public abstract class ChunkingServiceBase : IChunkingService
     {
         /// <inheritdoc/>
-        public virtual int MaxChunkLength { get; set; } = 25000;
+        public virtual int MaxChunkSize { get; set; } = 25000;
 
         /// <inheritdoc/>
         public virtual async IAsyncEnumerable<string> GetChunksAsync(Stream input)
@@ -26,14 +26,18 @@ namespace Denomica.OpenAI.Extensions.Text
                     nextChunk = await GetNextChunkAsync(reader);
                     if (null != nextChunk)
                     {
-                        if (chunkBuilder.Length + nextChunk.Length <= MaxChunkLength)
+                        if (chunkBuilder.Length + nextChunk.Length <= MaxChunkSize)
                         {
                             chunkBuilder.Append(nextChunk);
                         }
                         else
                         {
                             yield return chunkBuilder.ToString();
+                            
+                            // Since the next chunk did not fit into the current chunk, we start a
+                            // new chunk with the current chunk as the first chunk.
                             chunkBuilder.Clear();
+                            chunkBuilder.Append(nextChunk);
                         }
                     }
                 }

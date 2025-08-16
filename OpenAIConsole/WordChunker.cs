@@ -9,7 +9,7 @@ namespace OpenAIConsole
 {
     public class WordChunker : IChunkingService
     {
-        public int MaxChunkLength { get; set; }
+        public int MaxChunkSize { get; set; }
 
         public async IAsyncEnumerable<string> GetChunksAsync(Stream input)
         {
