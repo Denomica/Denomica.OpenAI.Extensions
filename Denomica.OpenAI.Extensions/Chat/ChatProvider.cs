@@ -11,8 +11,16 @@ namespace Denomica.OpenAI.Extensions.Chat
     /// Provides functionality for interacting with a chat service using a specified client and deployment
     /// configuration.
     /// </summary>
-    /// <remarks>This class is initialized with a <see cref="ChatClient"/>, a service provider, and deployment
-    /// options. It exposes the chat client and deployment name for use in chat-related operations.</remarks>
+    /// <remarks>
+    /// <para>
+    /// This class is initialized with a <see cref="ChatClient"/>, a service provider, and deployment
+    /// options. It exposes the chat client and deployment name for use in chat-related operations.
+    /// </para>
+    /// <para>
+    /// Currently, this class does not implement any methods for sending or receiving messages. It merely
+    /// serves as a wrapper around the <see cref="ChatClient"/> and configuration options.
+    /// </para>
+    /// </remarks>
     public class ChatProvider
     {
         /// <summary>

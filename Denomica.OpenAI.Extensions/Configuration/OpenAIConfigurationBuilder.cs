@@ -46,18 +46,13 @@ namespace Denomica.OpenAI.Extensions.Configuration
 
 
         /// <summary>
-        /// Configures the deployment options for a chat model and registers the necessary services.
+        /// Configures the chat model deployment options and registers the necessary services for the chat model.
         /// </summary>
-        /// <remarks>This method allows you to configure a chat model deployment by specifying options
-        /// such as the model name and other deployment-specific settings. It also registers the necessary services,
-        /// including a keyed <see cref="ChatClient"/> and <see cref="ChatProvider"/>, for interacting with the
-        /// configured chat model.</remarks>
-        /// <param name="configureOptions">A delegate that configures the <see cref="ChatModelDeploymentOptions"/> instance. The delegate receives the
-        /// options to configure and an <see cref="IServiceProvider"/> for resolving additional dependencies.</param>
-        /// <returns>An updated <see cref="OpenAIConfigurationBuilder"/> instance with the configured chat model deployment
-        /// options and associated services registered.</returns>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="configureOptions"/> is <see langword="null"/> or if the <c>Services</c> property
-        /// of the current <see cref="OpenAIConfigurationBuilder"/> instance is <see langword="null"/>.</exception>
+        /// <param name="configureOptions">A delegate that configures the <see cref="ChatModelDeploymentOptions"/> using the provided options instance
+        /// and service provider. This delegate is invoked during service registration.</param>
+        /// <returns>A new instance of <see cref="OpenAIConfigurationBuilder"/> with the chat model services configured.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if <see cref="Services"/> is <see langword="null"/> or if <paramref name="configureOptions"/> is <see
+        /// langword="null"/>.</exception>
         public OpenAIConfigurationBuilder WithChatModel(Action<ChatModelDeploymentOptions, IServiceProvider> configureOptions)
         {
             if (null == this.Services)
@@ -76,13 +71,13 @@ namespace Denomica.OpenAI.Extensions.Configuration
                     {
                         configureOptions(opt, sp);
                     }).Services
-                    .AddScoped<ChatClient>(sp =>
+                    .AddSingleton<ChatClient>(sp =>
                     {
                         var opt = sp.GetRequiredService<IOptions<ChatModelDeploymentOptions>>().Value;
                         var client = this.CreateOpenAIClient(opt);
                         return client.GetChatClient(opt.Name);
                     })
-                    .AddScoped<ChatProvider>(sp =>
+                    .AddSingleton<ChatProvider>(sp =>
                     {
                         var opt = sp.GetRequiredService<IOptions<ChatModelDeploymentOptions>>().Value;
                         var client = sp.GetRequiredService<ChatClient>();
@@ -100,7 +95,7 @@ namespace Denomica.OpenAI.Extensions.Configuration
         /// <returns>The current instance of <see cref="OpenAIConfigurationBuilder"/> to allow for method chaining.</returns>
         public OpenAIConfigurationBuilder WithChunkingService<TChunkingService>() where TChunkingService : class, IChunkingService
         {
-            this.Services.AddScoped<IChunkingService, TChunkingService>();
+            this.Services.AddSingleton<IChunkingService, TChunkingService>();
             return this;
         }
 
@@ -122,7 +117,7 @@ namespace Denomica.OpenAI.Extensions.Configuration
             {
                 throw new ArgumentNullException(nameof(factory));
             }
-            this.Services.AddScoped<IChunkingService>(factory);
+            this.Services.AddSingleton<IChunkingService>(factory);
 
             return this;
         }
@@ -139,7 +134,7 @@ namespace Denomica.OpenAI.Extensions.Configuration
         /// <returns>The current instance of <see cref="OpenAIConfigurationBuilder"/> to allow for method chaining.</returns>
         public OpenAIConfigurationBuilder WithEmbeddingAggregationService<TAggregationService>() where TAggregationService : class, IEmbeddingAggregationService
         {
-            this.Services.AddScoped<IEmbeddingAggregationService, TAggregationService>();
+            this.Services.AddSingleton<IEmbeddingAggregationService, TAggregationService>();
             return this;
         }
 
@@ -162,7 +157,7 @@ namespace Denomica.OpenAI.Extensions.Configuration
             {
                 throw new ArgumentNullException(nameof(factory));
             }
-            this.Services.AddScoped<IEmbeddingAggregationService>(factory);
+            this.Services.AddSingleton<IEmbeddingAggregationService>(factory);
             return this;
         }
 
@@ -170,13 +165,14 @@ namespace Denomica.OpenAI.Extensions.Configuration
         /// Configures the embedding model deployment options and registers the necessary services for embedding
         /// functionality.
         /// </summary>
-        /// <remarks>This method allows you to configure and register an embedding model deployment by
-        /// providing a custom configuration delegate. The configured options are registered as a singleton, and the
-        /// method also sets up scoped services for <see cref="EmbeddingClient"/> and <see cref="EmbeddingProvider"/>
-        /// keyed by the deployment name.</remarks>
+        /// <remarks>This method registers the necessary services for embedding functionality, including
+        /// the embedding client and provider. The <paramref name="configureOptions"/> delegate is used to configure the
+        /// deployment options, such as the endpoint URI and API key. These services are added to the dependency
+        /// injection container and can be resolved as needed.</remarks>
         /// <param name="configureOptions">A delegate that configures the <see cref="EmbeddingModelDeploymentOptions"/> using the provided options
-        /// instance and the <see cref="IServiceProvider"/> for resolving dependencies.</param>
-        /// <returns>A new instance of <see cref="OpenAIConfigurationBuilder"/> with the configured embedding model services.</returns>
+        /// instance and <see cref="IServiceProvider"/>. This delegate is used to specify the endpoint, API key, and
+        /// other settings required for the embedding model.</param>
+        /// <returns>A new instance of <see cref="OpenAIConfigurationBuilder"/> with the embedding model services configured.</returns>
         /// <exception cref="ArgumentNullException">Thrown if <see cref="Services"/> is <c>null</c> or if <paramref name="configureOptions"/> is <c>null</c>.</exception>
         public OpenAIConfigurationBuilder WithEmbeddingModel(Action<EmbeddingModelDeploymentOptions, IServiceProvider> configureOptions)
         {
@@ -196,13 +192,13 @@ namespace Denomica.OpenAI.Extensions.Configuration
                     {
                         configureOptions(opt, sp);
                     }).Services
-                    .AddScoped<EmbeddingClient>(sp =>
+                    .AddSingleton<EmbeddingClient>(sp =>
                     {
                         var opt = sp.GetRequiredService<IOptions<EmbeddingModelDeploymentOptions>>().Value;
                         var client = new AzureOpenAIClient(new Uri(opt.Endpoint), new ApiKeyCredential(opt.ApiKey ?? ""));
                         return client.GetEmbeddingClient(opt.Name);
                     })
-                    .AddScoped<EmbeddingProvider>(sp =>
+                    .AddSingleton<EmbeddingProvider>(sp =>
                     {
                         var opt = sp.GetRequiredService<IOptions<EmbeddingModelDeploymentOptions>>().Value;
                         var client = sp.GetRequiredService<EmbeddingClient>();
