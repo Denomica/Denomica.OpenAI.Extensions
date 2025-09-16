@@ -44,6 +44,10 @@ var embedding = await embeddingProvider.GenerateEmbeddingAsync("Hello World!");
 
 The main hihglights in the published versions are outlined below.
 
+### v1.0.0-beta.6
+
+- Changed `OpenAIConfigurationBuilder` to register services as singleton services instead of scoped services.
+
 ### v1.0.0-beta.5
 
 - Refactored the embedding aggregation logic into a service to enable you to customize aggregation logic.
