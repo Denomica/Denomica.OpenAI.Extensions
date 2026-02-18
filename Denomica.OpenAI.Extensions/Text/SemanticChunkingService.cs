@@ -19,6 +19,13 @@ namespace Denomica.OpenAI.Extensions.Text
     /// </remarks>
     public sealed class SemanticChunkingService : IChunkingService
     {
+        /// <summary>
+        /// Initializes a new instance with default options.
+        /// </summary>
+        public SemanticChunkingService()
+        {
+            this.Options = new SemanticChunkingServiceOptions();
+        }
 
         /// <summary>
         /// Initializes a new instance using the provided options.

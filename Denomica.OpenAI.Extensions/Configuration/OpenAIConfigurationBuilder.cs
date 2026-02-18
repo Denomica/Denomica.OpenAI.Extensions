@@ -33,6 +33,8 @@ namespace Denomica.OpenAI.Extensions.Configuration
         public OpenAIConfigurationBuilder(IServiceCollection services)
         {
             this.Services = services ?? throw new ArgumentNullException(nameof(services));
+            this.WithChunkingService<SemanticChunkingService>();
+            this.WithEmbeddingAggregationService<WeightedAverageAggregationService>();
         }
 
         /// <summary>

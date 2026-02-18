@@ -17,7 +17,6 @@ using OpenAI.Chat;
 
 var provider = new ServiceCollection()
     .AddOpenAIExtensions()
-    .WithChunkingService<LineChunkingService>()
     .WithChatModel((opt, sp) =>
     {
         // Add your chat model configuration here.

@@ -1,5 +1,6 @@
 ﻿using Azure.AI.OpenAI;
 using Denomica.OpenAI.Extensions.Configuration;
+using Denomica.OpenAI.Extensions.Embeddings;
 using Denomica.OpenAI.Extensions.Text;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -22,6 +23,17 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <summary>
         /// Adds OpenAI extensions to the specified service collection.
         /// </summary>
+        /// <remarks>
+        /// <para>
+        /// The <see cref="OpenAIConfigurationBuilder"/> that is returned specifies the following default services.
+        /// </para>
+        /// <para>
+        /// <list type="bullet">
+        /// <item><description><see cref="SemanticChunkingService"/> for text chunking when creating vector embeddings.</description></item>
+        /// <item><description><see cref="WeightedAverageAggregationService"/> for aggregating vector embeddings generated for multiple chunks into one.</description></item>
+        /// </list>
+        /// </para>
+        /// </remarks>
         /// <param name="services">The <see cref="IServiceCollection"/> to which the OpenAI extensions will be added. Cannot be <see
         /// langword="null"/>.</param>
         /// <returns>An <see cref="OpenAIConfigurationBuilder"/> that can be used to further configure the OpenAI services.</returns>

@@ -8,7 +8,7 @@ namespace Denomica.OpenAI.Extensions.Configuration
     public class SemanticChunkingServiceOptions
     {
         /// <summary>Maximum tokens per emitted chunk (approximate; uses 4 chars ≈ 1 token heuristic).</summary>
-        public int MaxChunkSize { get; set; } = 600;
+        public int MaxChunkSize { get; set; } = 6000;
 
         /// <summary>Number of tokens to repeat at the start of each chunk from the end of the previous one.</summary>
         public int OverlapTokens { get; set; } = 60;

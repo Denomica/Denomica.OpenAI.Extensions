@@ -349,5 +349,67 @@ namespace Denomica.OpenAI.Extensions.Tests
             Assert.IsTrue(chunksSmall.Count > chunksLarge.Count,
                 "Smaller budget should produce more chunks.");
         }
+
+        // -------------------------------------------------------------------------
+        // Default options / realistic input
+        // -------------------------------------------------------------------------
+
+        /// <summary>
+        /// Uses default options (MaxChunkSize = 6000) and a lorem ipsum corpus large enough
+        /// to exceed the budget, verifying that at least two chunks are produced and that
+        /// no chunk is empty.
+        /// </summary>
+        [TestMethod]
+        public async Task SemanticChunkText20()
+        {
+            var defaultOptions = new SemanticChunkingServiceOptions();
+            var svc = CreateService(maxChunkSize: defaultOptions.MaxChunkSize, overlapTokens: defaultOptions.OverlapTokens);
+
+            // Four classic lorem ipsum paragraphs, each ~200 chars (~50 tokens).
+            // Repeated 55 times → ~44 000 chars (~11 000 tokens), reliably spanning two default-sized chunks.
+            const string p1 =
+                "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor " +
+                "incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud " +
+                "exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.";
+
+            const string p2 =
+                "Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu " +
+                "fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa " +
+                "qui officia deserunt mollit anim id est laborum.";
+
+            const string p3 =
+                "Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque " +
+                "laudantium, totam rem aperiam eaque ipsa quae ab illo inventore veritatis et quasi " +
+                "architecto beatae vitae dicta sunt explicabo.";
+
+            const string p4 =
+                "Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia " +
+                "consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Neque porro " +
+                "quisquam est qui dolorem ipsum quia dolor sit amet consectetur adipisci velit.";
+
+            var singlePass = string.Join("\n\n", p1, p2, p3, p4);
+            var corpus = string.Join("\n\n", Enumerable.Repeat(singlePass, 55));
+
+            var estimatedTokens = corpus.Length / 4;
+            Assert.IsTrue(estimatedTokens > defaultOptions.MaxChunkSize,
+                "Corpus is too small to exceed the default budget. Increase the repetition count.");
+
+            var chunks = await ChunkAsync(svc, corpus);
+
+            Assert.IsTrue(chunks.Count >= 2,
+                $"Expected at least 2 chunks with MaxChunkSize={defaultOptions.MaxChunkSize} and a ~{estimatedTokens}-token corpus.");
+            Assert.IsTrue(chunks.All(c => !string.IsNullOrWhiteSpace(c)),
+                "One or more emitted chunks are empty.");
+
+            // All chunks except the last should be at least 70% of MaxChunkSize.
+            // The last chunk is exempt because it contains whatever remains after the final boundary.
+            var minTokens = (int)(defaultOptions.MaxChunkSize * 0.70);
+            foreach (var chunk in chunks.SkipLast(1))
+            {
+                var tokens = chunk.Length / 4;
+                Assert.IsTrue(tokens >= minTokens,
+                    $"Non-final chunk is below 70% of MaxChunkSize ({tokens} tokens, minimum {minTokens}).");
+            }
+        }
     }
 }
