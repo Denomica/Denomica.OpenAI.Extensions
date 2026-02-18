@@ -43,6 +43,13 @@ var embedding = await embeddingProvider.GenerateEmbeddingAsync("Hello World!");
 
 The main hihglights in the published versions are outlined below.
 
+### v1.0.0-beta.7
+
+- Simplified the `IChunkingService` service interface.
+- Added a `SemanticChunkingService` service that better controls text chunking
+- Removed the other chunking service implementations since they are no longer needed with the new `SemanticChunkingService` implementation.
+- This is a breaking change to the previous version of the library.
+
 ### v1.0.0-beta.6
 
 - Changed `OpenAIConfigurationBuilder` to register services as singleton services instead of scoped services.
