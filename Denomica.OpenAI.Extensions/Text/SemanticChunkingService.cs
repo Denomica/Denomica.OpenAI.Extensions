@@ -5,267 +5,370 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Denomica.OpenAI.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 
 namespace Denomica.OpenAI.Extensions.Text
 {
     /// <summary>
-    /// A lean, rule-based chunker that treats MaxChunkSize as a token budget.
+    /// A rule-based chunking service that treats <see cref="MaxChunkSize"/> as an approximate token budget.
     /// Produces structure-aware chunks with optional overlap, without using an LLM.
     /// </summary>
+    /// <remarks>
+    /// Pipeline: read → paragraph split → block classification → greedy pack → overlap injection → yield.
+    /// </remarks>
     public sealed class SemanticChunkingService : IChunkingService
     {
-        // === IChunkingService requirement ===
-        // Interpreted as: maximum tokens per emitted chunk (approximate).
-        public int MaxChunkSize { get; set; } = 600;
-
-        // === Tuning knobs exposed as properties (no separate options class) ===
-        /// <summary>~10% overlap is a good default. Helps recall across chunk boundaries.</summary>
-        public int OverlapTokens { get; set; } = 60;
-
-        /// <summary>Minimum characters to avoid tiny fragments.</summary>
-        public int MinChunkChars { get; set; } = 300;
-
-        /// <summary>Attempt to keep consecutive bullet/numbered list lines together.</summary>
-        public bool KeepListsTogether { get; set; } = true;
-
-        /// <summary>Target size when splitting an oversized block by sentences.</summary>
-        public int FallbackSentenceTargetTokens { get; set; } = 600;
-
-        // Heading-like patterns to find natural section boundaries in exported/plain text
-        private static readonly Regex[] HeadingPatterns = new[]
-        {
-            new Regex(@"^\s*\d+\.\s+\S", RegexOptions.Compiled),                               // "1. Title"
-            new Regex(@"^\s*(?:[IVXLC]+)\.\s+\S", RegexOptions.Compiled),                      // "I. Title"
-            new Regex(@"^\s*Chapter\s+\d+\b", RegexOptions.IgnoreCase | RegexOptions.Compiled),
-            new Regex(@"^[A-Z][A-Z0-9 \-:]{6,}$", RegexOptions.Compiled)                       // ALL CAPS-ish headline
-        };
-
-        // ------------------------- Public API -------------------------
 
         /// <summary>
-        /// Chunk raw text content. Writes it to a stream and delegates to the Stream overload.
+        /// Initializes a new instance using the provided options.
         /// </summary>
+        public SemanticChunkingService(IOptions<SemanticChunkingServiceOptions> options)
+        {
+           this.Options = options?.Value ?? throw new ArgumentNullException(nameof(options));
+        }
+
+        private readonly SemanticChunkingServiceOptions Options;
+
+        /// <inheritdoc/>
+        public int MaxChunkSize
+        {
+            get => this.Options.MaxChunkSize;
+            set => this.Options.MaxChunkSize = value;
+        }
+
+
+        // -------------------------------------------------------------------------
+        // Heading detection
+        // -------------------------------------------------------------------------
+
+        private static readonly Regex[] HeadingPatterns =
+        {
+            new Regex(@"^\s*Chapter\s+\d+\b",              RegexOptions.IgnoreCase | RegexOptions.Compiled),
+            new Regex(@"^\s*(?:[IVXLC]+)\.\s+\S",          RegexOptions.Compiled),   // "IV. Title"
+            new Regex(@"^[A-Z][A-Z0-9 \-:]{6,}$",          RegexOptions.Compiled),   // ALL-CAPS headline
+        };
+
+        private static bool LooksLikeHeading(string s) =>
+            !string.IsNullOrWhiteSpace(s) && HeadingPatterns.Any(rx => rx.IsMatch(s));
+
+        // -------------------------------------------------------------------------
+        // Public API
+        // -------------------------------------------------------------------------
+
+        /// <inheritdoc/>
         public async IAsyncEnumerable<string> GetChunksAsync(string input)
         {
-            if (string.IsNullOrWhiteSpace(input))
-                yield break;
+            if (string.IsNullOrWhiteSpace(input)) yield break;
 
             using var ms = new MemoryStream(Encoding.UTF8.GetBytes(input));
-            ms.Position = 0;
-
             await foreach (var chunk in GetChunksAsync(ms))
                 yield return chunk;
         }
 
-        /// <summary>
-        /// Chunk an input stream (UTF-8 text). Uses semantic blocks + token-budgeted packing with overlap.
-        /// </summary>
+        /// <inheritdoc/>
         public async IAsyncEnumerable<string> GetChunksAsync(Stream input)
         {
             if (input is null) yield break;
 
-            using var reader = new StreamReader(input, Encoding.UTF8, true, 4096, leaveOpen: true);
-            var blocks = await ReadBlocksAsync(reader); // (title?, body) pairs
+            string text;
+            using (var reader = new StreamReader(input, Encoding.UTF8, true, 4096, leaveOpen: true))
+                text = await reader.ReadToEndAsync();
 
-            var buffer = new List<(string title, string body)>();
+            var blocks = Segment(text);
+
+            // Greedy packer state
+            var buffer = new List<Block>();
             var bufferTokens = 0;
-
-            var tail = new LinkedList<string>(); // last lines from the previous emitted chunk (for overlap)
-            var tailTokens = 0;
+            var overlapText = string.Empty; // tail of the last emitted chunk
 
             foreach (var block in blocks)
             {
-                var piece = Merge(block.title, block.body);
-                var pieceTokens = EstimateTokens(piece);
-
-                // Oversized single block → split by sentences into sub-chunks
-                if (pieceTokens > MaxChunkSize)
+                // Oversized block: flush buffer, inject overlap, split by sentence
+                if (block.Tokens > MaxChunkSize)
                 {
                     if (buffer.Count > 0)
                     {
-                        var emitted = EmitChunk(buffer);
-                        yield return emitted;
-                        UpdateOverlapTail(emitted, ref tail, ref tailTokens);
+                        var flushed = Pack(buffer);
+                        overlapText = ExtractOverlapTail(flushed);
+                        yield return flushed;
                         buffer.Clear();
                         bufferTokens = 0;
                     }
 
-                    foreach (var sub in SplitBySentence(block.title, block.body, MaxChunkSize, FallbackSentenceTargetTokens))
+                    foreach (var sub in SplitBySentences(block, overlapText))
                     {
+                        overlapText = ExtractOverlapTail(sub);
                         yield return sub;
-                        UpdateOverlapTail(sub, ref tail, ref tailTokens);
                     }
                     continue;
                 }
 
-                // Fits current chunk? else emit and start a new one (with overlap carried over)
-                if (bufferTokens + pieceTokens <= MaxChunkSize || bufferTokens == 0)
+                // Block fits in current buffer
+                if (bufferTokens + block.Tokens <= MaxChunkSize)
                 {
-                    buffer.Add((block.title ?? string.Empty, piece));
-                    bufferTokens += pieceTokens;
+                    buffer.Add(block);
+                    bufferTokens += block.Tokens;
                 }
                 else
                 {
-                    var emitted = EmitChunk(buffer);
+                    // Emit current buffer, start a new one with overlap prepended
+                    var emitted = Pack(buffer);
+                    overlapText = ExtractOverlapTail(emitted);
                     yield return emitted;
-                    UpdateOverlapTail(emitted, ref tail, ref tailTokens);
 
                     buffer.Clear();
                     bufferTokens = 0;
 
-                    if (OverlapTokens > 0 && tail.Count > 0)
+                    if (overlapText.Length > 0)
                     {
-                        var overlapJoined = string.Join("\n", tail);
-                        buffer.Add((string.Empty, overlapJoined));
-                        bufferTokens += EstimateTokens(overlapJoined);
+                        var overlapBlock = new Block(null, overlapText);
+                        buffer.Add(overlapBlock);
+                        bufferTokens += overlapBlock.Tokens;
                     }
 
-                    buffer.Add((block.title ?? string.Empty, piece));
-                    bufferTokens += pieceTokens;
+                    buffer.Add(block);
+                    bufferTokens += block.Tokens;
                 }
             }
 
             if (buffer.Count > 0)
-                yield return EmitChunk(buffer);
+                yield return Pack(buffer);
         }
 
-        // ------------------------- Internals -------------------------
+        // -------------------------------------------------------------------------
+        // Stage 1 – Segmentation: raw text → classified Block list
+        // -------------------------------------------------------------------------
 
-        private static string Merge(string? title, string body)
-            => string.IsNullOrWhiteSpace(title) ? body.Trim() : (title + "\n" + body).Trim();
-
-        private async Task<List<(string? title, string body)>> ReadBlocksAsync(StreamReader reader)
+        private List<Block> Segment(string text)
         {
-            var text = await reader.ReadToEndAsync();
-            return ToSemanticBlocks(text, KeepListsTogether);
+            var paragraphs = SplitIntoParagraphs(text);
+            var merged = this.Options.KeepListsTogether ? MergeListParagraphs(paragraphs) : paragraphs;
+            return ClassifyBlocks(merged);
         }
 
-        private static List<(string? title, string body)> ToSemanticBlocks(string text, bool keepLists)
+        /// <summary>Splits on blank lines, trimming each paragraph.</summary>
+        private static List<string> SplitIntoParagraphs(string text)
         {
-            var nl = text.Replace("\r\n", "\n");
-            var paras = nl.Split("\n\n")
-                          .Select(p => p.Trim())
-                          .Where(p => p.Length > 0)
-                          .ToList();
+            return text
+                .Replace("\r\n", "\n")
+                .Split(new[] { "\n\n" }, StringSplitOptions.None)
+                .Select(p => p.Trim())
+                .Where(p => p.Length > 0)
+                .ToList();
+        }
 
-            // Merge consecutive list-like paragraphs so lists stay intact
-            static bool IsListLine(string s) =>
-                Regex.IsMatch(s, @"^(\s*[-*•–]\s|\s*\d+\.\s)");
+        /// <summary>
+        /// Merges consecutive list-only paragraphs into a single paragraph so a list
+        /// is not split across blocks.
+        /// </summary>
+        private static List<string> MergeListParagraphs(List<string> paragraphs)
+        {
+            var result = new List<string>();
+            var listBuf = new List<string>();
 
-            var blocks = new List<string>();
-            var buf = new List<string>();
-
-            foreach (var p in paras)
+            foreach (var p in paragraphs)
             {
-                if (keepLists && (IsListLine(p) || (buf.Count > 0 && buf.All(IsListLine))))
+                if (IsListParagraph(p))
                 {
-                    buf.Add(p);
-                    continue;
-                }
-
-                if (buf.Count > 0)
-                {
-                    blocks.Add(string.Join("\n", buf));
-                    buf.Clear();
-                }
-                blocks.Add(p);
-            }
-            if (buf.Count > 0) blocks.Add(string.Join("\n", buf));
-
-            // Promote heading-like blocks; pair with following body when possible
-            var result = new List<(string? title, string body)>();
-            for (int i = 0; i < blocks.Count; i++)
-            {
-                var b = blocks[i];
-                if (LooksLikeHeading(b) && i + 1 < blocks.Count)
-                {
-                    result.Add((b, blocks[i + 1]));
-                    i++; // consume next as body
+                    listBuf.Add(p);
                 }
                 else
                 {
-                    var lines = b.Split('\n');
-                    if (lines.Length > 1 && LooksLikeHeading(lines[0]))
-                        result.Add((lines[0], string.Join("\n", lines.Skip(1))));
-                    else
-                        result.Add((null, b));
+                    if (listBuf.Count > 0)
+                    {
+                        result.Add(string.Join("\n", listBuf));
+                        listBuf.Clear();
+                    }
+                    result.Add(p);
                 }
             }
-            return result;
 
-            static bool LooksLikeHeading(string s) => HeadingPatterns.Any(rx => rx.IsMatch(s));
+            if (listBuf.Count > 0)
+                result.Add(string.Join("\n", listBuf));
+
+            return result;
         }
 
-        private IEnumerable<string> SplitBySentence(string? title, string body, int maxTokens, int targetTokens)
+        /// <summary>Returns true when every non-empty line in the paragraph looks like a list item.</summary>
+        private static bool IsListParagraph(string p)
         {
-            // Naive sentence boundary splitter; used only when a single block is too large.
-            var sentences = Regex.Split(body, @"(?<=[\.!\?])\s+")
-                                 .Where(s => !string.IsNullOrWhiteSpace(s))
-                                 .ToList();
+            var lines = p.Split('\n').Where(l => l.Trim().Length > 0).ToList();
+            return lines.Count > 0 && lines.All(IsListLine);
+        }
 
-            var acc = new List<string>();
-            int t = 0;
+        private static readonly Regex ListLineRx =
+            new Regex(@"^(\s*[-*•–]\s|\s*\d+\.\s)", RegexOptions.Compiled);
 
-            foreach (var s in sentences)
+        private static bool IsListLine(string line) => ListLineRx.IsMatch(line);
+
+        /// <summary>
+        /// Pairs heading paragraphs with their following body paragraph, and splits
+        /// paragraphs whose first line looks like a heading from their body.
+        /// </summary>
+        private static List<Block> ClassifyBlocks(List<string> paragraphs)
+        {
+            var result = new List<Block>();
+
+            for (int i = 0; i < paragraphs.Count; i++)
             {
-                var st = EstimateTokens(s);
-                if (acc.Count > 0 && (t + st > Math.Min(maxTokens, targetTokens)))
-                {
-                    yield return EmitSentenceChunk(title, acc);
+                var p = paragraphs[i];
 
-                    // sentence-level overlap: carry the last sentence into next chunk
-                    var last = acc.Last();
-                    acc.Clear();
-                    acc.Add(last);
-                    t = EstimateTokens(last);
+                // Standalone heading paragraph: pair it with the next paragraph as its body
+                if (LooksLikeHeading(p) && i + 1 < paragraphs.Count)
+                {
+                    result.Add(new Block(p, paragraphs[i + 1]));
+                    i++; // consumed as body
+                    continue;
                 }
 
-                acc.Add(s);
-                t += st;
+                // Paragraph whose first line is a heading
+                var lines = p.Split('\n');
+                if (lines.Length > 1 && LooksLikeHeading(lines[0]))
+                {
+                    result.Add(new Block(lines[0], string.Join("\n", lines.Skip(1))));
+                    continue;
+                }
+
+                result.Add(new Block(null, p));
+            }
+
+            return result;
+        }
+
+        // -------------------------------------------------------------------------
+        // Stage 2 – Packing: Block list → single chunk string
+        // -------------------------------------------------------------------------
+
+        private static string Pack(List<Block> blocks)
+        {
+            return string.Join("\n\n", blocks.Select(b => b.ToText())).Trim();
+        }
+
+        // -------------------------------------------------------------------------
+        // Stage 3 – Sentence splitting (fallback for oversized blocks)
+        // -------------------------------------------------------------------------
+
+        private IEnumerable<string> SplitBySentences(Block block, string overlapText)
+        {
+            var sentences = TokenizeSentences(block.Body);
+
+            var acc = new List<string>();
+            var accTokens = 0;
+
+            // Prepend overlap from previous chunk if available
+            if (overlapText.Length > 0)
+            {
+                acc.Add(overlapText);
+                accTokens += EstimateTokens(overlapText);
+            }
+
+            foreach (var sentence in sentences)
+            {
+                var st = EstimateTokens(sentence);
+
+                // Single sentence too large to fit: emit it alone to avoid an infinite loop
+                if (acc.Count == 0 && st > MaxChunkSize)
+                {
+                    yield return BuildSentenceChunk(block.Heading, sentence);
+                    continue;
+                }
+
+                if (accTokens + st > MaxChunkSize && acc.Count > 0)
+                {
+                    yield return BuildSentenceChunk(block.Heading, string.Join(" ", acc));
+
+                    // Carry last sentence as overlap into the next sub-chunk
+                    var lastSentence = acc.Last();
+                    acc.Clear();
+                    acc.Add(lastSentence);
+                    accTokens = EstimateTokens(lastSentence);
+                }
+
+                acc.Add(sentence);
+                accTokens += st;
             }
 
             if (acc.Count > 0)
-                yield return EmitSentenceChunk(title, acc);
-
-            static string EmitSentenceChunk(string? ttl, List<string> parts)
-            {
-                var bodyChunk = string.Join(" ", parts).Trim();
-                return string.IsNullOrWhiteSpace(ttl) ? bodyChunk : (ttl + "\n" + bodyChunk);
-            }
+                yield return BuildSentenceChunk(block.Heading, string.Join(" ", acc));
         }
 
-        private string EmitChunk(List<(string title, string body)> buffer)
+        private static List<string> TokenizeSentences(string text)
         {
-            var content = string.Join("\n\n", buffer.Select(b => string.IsNullOrWhiteSpace(b.title) ? b.body : b.title + "\n" + b.body)).Trim();
-
-            if (content.Length < MinChunkChars && buffer.Count > 1)
-            {
-                // Keep simple; the greedy packer already balances sizes.
-            }
-            return content;
+            return Regex
+                .Split(text, @"(?<=[\.!\?])\s+")
+                .Select(s => s.Trim())
+                .Where(s => s.Length > 0)
+                .ToList();
         }
 
-        private void UpdateOverlapTail(string emitted, ref LinkedList<string> tail, ref int tailTokens)
+        private static string BuildSentenceChunk(string? heading, string body)
         {
-            if (OverlapTokens <= 0) return;
+            body = body.Trim();
+            return string.IsNullOrWhiteSpace(heading) ? body : heading + "\n" + body;
+        }
 
-            var lines = emitted.Split('\n');
-            tail = new LinkedList<string>();
-            tailTokens = 0;
+        // -------------------------------------------------------------------------
+        // Stage 4 – Overlap extraction
+        // -------------------------------------------------------------------------
+
+        /// <summary>
+        /// Walks backwards through the lines of <paramref name="chunk"/>, accumulating
+        /// non-blank lines until the token budget (<see cref="OverlapTokens"/>) is met.
+        /// </summary>
+        private string ExtractOverlapTail(string chunk)
+        {
+            if (this.Options.OverlapTokens <= 0 || string.IsNullOrWhiteSpace(chunk))
+                return string.Empty;
+
+            var lines = chunk.Split('\n');
+            var tail = new List<string>();
+            var tailTokens = 0;
 
             for (int i = lines.Length - 1; i >= 0; i--)
             {
                 var line = lines[i];
+                if (string.IsNullOrWhiteSpace(line)) continue; // skip blank separator lines
+
                 var t = EstimateTokens(line);
-                if (tailTokens + t > OverlapTokens && tail.Count > 0) break;
-                tail.AddFirst(line);
+                tail.Insert(0, line);
                 tailTokens += t;
-                if (tailTokens >= OverlapTokens) break;
+
+                if (tailTokens >= this.Options.OverlapTokens) break;
             }
+
+            return string.Join("\n", tail);
         }
 
-        // --- Private, simplified token estimator (no external dependency) ---
-        private static int EstimateTokens(string text)
-            => Math.Max(1, (text?.Length ?? 0) / 4); // ~4 chars ≈ 1 token (heuristic)
+        // -------------------------------------------------------------------------
+        // Token estimator
+        // -------------------------------------------------------------------------
+
+        private static int EstimateTokens(string text) =>
+            Math.Max(1, (text?.Length ?? 0) / 4); // ~4 chars ≈ 1 token
+
+        // -------------------------------------------------------------------------
+        // Block: a heading + body pair produced by the segmentation stage
+        // -------------------------------------------------------------------------
+
+        private sealed class Block
+        {
+            public string? Heading { get; }
+            public string Body { get; }
+            public int Tokens { get; }
+
+            public Block(string? heading, string body)
+            {
+                Heading = string.IsNullOrWhiteSpace(heading) ? null : heading.Trim();
+                Body = body?.Trim() ?? string.Empty;
+                Tokens = EstimateTokens(ToText());
+            }
+
+            public string ToText() =>
+                Heading is null ? Body : Heading + "\n" + Body;
+
+            private static int EstimateTokens(string text) =>
+                Math.Max(1, (text?.Length ?? 0) / 4);
+        }
     }
 }
