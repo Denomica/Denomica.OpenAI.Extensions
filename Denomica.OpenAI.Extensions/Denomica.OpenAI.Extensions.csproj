@@ -3,6 +3,9 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
     <Nullable>enable</Nullable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
 	  <Title>Denomica.OpenAI.Extensions</Title>
 	  <Description>Denomica.OpenAI.Extensions is a library that provides extension methods for working with types in Azure.AI.OpenAI.</Description>
 	  <Copyright>Copyright (c) 2025 Denomica Oy</Copyright>
