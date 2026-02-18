@@ -18,13 +18,7 @@ var provider = new ServiceCollection()
         opt.ApiKey = args[1];
         opt.Name = args[3];
     })
-    .WithChunkingService(sp =>
-    {
-        return new LineChunkingService { MaxChunkSize = 100 };
-    })
     .Services
-    
-
     .BuildServiceProvider();
 
 var chatProvider = provider.GetRequiredService<ChatProvider>();

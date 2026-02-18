@@ -7,8 +7,12 @@ using System.Threading.Tasks;
 
 namespace Denomica.OpenAI.Extensions.Embeddings
 {
+    /// <summary>
+    /// An embedding aggregation service that combines multiple embedding responses into a single aggregated result by calculating a weighted average of the embedding vectors based on the total tokens used in each response.
+    /// </summary>
     public class WeightedAverageAggregationService : IEmbeddingAggregationService
     {
+        /// <inheritdoc/>
         public Task<EmbeddingResponse?> AggregateAsync(IEnumerable<EmbeddingResponse>? embeddings)
         {
             EmbeddingResponse? response = null;

@@ -26,6 +26,7 @@ namespace Denomica.OpenAI.Extensions.Embeddings
         /// <param name="client">The <see cref="EmbeddingClient"/> instance used to interact with the embedding service. Cannot be <see
         /// langword="null"/>.</param>
         /// <param name="sp">The <see cref="IServiceProvider"/> instance used to resolve dependencies. Cannot be <see langword="null"/>.</param>
+        /// <param name="options">The options for configuring the embedding model deployment. Cannot be <see langword="null"/>.</param>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="client"/> or <paramref name="sp"/> is <see langword="null"/>.</exception>
         public EmbeddingProvider(EmbeddingClient client, IServiceProvider sp, IOptions<EmbeddingModelDeploymentOptions> options)
         {
