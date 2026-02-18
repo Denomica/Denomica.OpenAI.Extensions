@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Denomica.OpenAI.Extensions.Configuration;
 using Denomica.OpenAI.Extensions.Text;
 using Microsoft.Extensions.Options;
 
@@ -234,9 +230,11 @@ namespace Denomica.OpenAI.Extensions.Tests
         [TestMethod]
         public async Task SemanticChunkText13()
         {
-            // With a tiny budget each list item will be its own chunk
+            // Each item is ~60 chars (~15 tokens), well above the budget of 10, so each must be its own chunk
             var svc = CreateService(maxChunkSize: 10, overlapTokens: 0, keepListsTogether: false);
-            var input = "- Item one\n\n- Item two\n\n- Item three";
+            var input = "- Item one with enough text to exceed the token budget\n\n" +
+                        "- Item two with enough text to exceed the token budget\n\n" +
+                        "- Item three with enough text to exceed the token budget";
 
             var chunks = await ChunkAsync(svc, input);
 
