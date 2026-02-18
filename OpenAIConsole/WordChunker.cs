@@ -1,35 +1,23 @@
 ﻿using Denomica.OpenAI.Extensions.Text;
-using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.IO;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace OpenAIConsole
 {
     public class WordChunker : IChunkingService
     {
-        public int MaxChunkSize { get; set; }
-
         public async IAsyncEnumerable<string> GetChunksAsync(Stream input)
         {
             string content;
-            using(var reader = new StreamReader(input))
+            using (var reader = new StreamReader(input, Encoding.UTF8))
             {
                 content = await reader.ReadToEndAsync();
             }
 
-            await foreach(var chunk in GetChunksAsync(content))
+            foreach (var chunk in content.Split(' '))
             {
                 yield return chunk;
-            }
-        }
-
-        public async IAsyncEnumerable<string> GetChunksAsync(string input)
-        {
-            foreach (var chunk in input.Split(' '))
-            {
-                yield return await Task.FromResult(chunk);
             }
         }
     }

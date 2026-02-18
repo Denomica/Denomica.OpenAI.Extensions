@@ -28,7 +28,8 @@ namespace Denomica.OpenAI.Extensions.Tests
         private static async Task<List<string>> ChunkAsync(IChunkingService svc, string input)
         {
             var chunks = new List<string>();
-            await foreach (var chunk in svc.GetChunksAsync(input))
+            using var ms = new System.IO.MemoryStream(System.Text.Encoding.UTF8.GetBytes(input ?? string.Empty));
+            await foreach (var chunk in svc.GetChunksAsync(ms))
                 chunks.Add(chunk);
             return chunks;
         }
@@ -42,9 +43,7 @@ namespace Denomica.OpenAI.Extensions.Tests
         public async Task SemanticChunkText01()
         {
             var svc = CreateService();
-            var chunks = new List<string>();
-            await foreach (var chunk in svc.GetChunksAsync((string)null!))
-                chunks.Add(chunk);
+            var chunks = await ChunkAsync(svc, null!);
 
             Assert.AreEqual(0, chunks.Count);
         }
@@ -337,14 +336,14 @@ namespace Denomica.OpenAI.Extensions.Tests
         [TestMethod]
         public async Task SemanticChunkText19()
         {
-            var svc = CreateService(maxChunkSize: 600, overlapTokens: 0);
             var input = string.Join("\n\n", Enumerable.Range(1, 5)
                 .Select(_ => new string('x', 200)));
 
-            var chunksLarge = await ChunkAsync(svc, input);
+            var svcLarge = CreateService(maxChunkSize: 600, overlapTokens: 0);
+            var chunksLarge = await ChunkAsync(svcLarge, input);
 
-            svc.MaxChunkSize = 50; // shrink the budget
-            var chunksSmall = await ChunkAsync(svc, input);
+            var svcSmall = CreateService(maxChunkSize: 50, overlapTokens: 0);
+            var chunksSmall = await ChunkAsync(svcSmall, input);
 
             Assert.IsTrue(chunksSmall.Count > chunksLarge.Count,
                 "Smaller budget should produce more chunks.");

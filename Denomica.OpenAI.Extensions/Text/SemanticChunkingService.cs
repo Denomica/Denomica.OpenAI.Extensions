@@ -11,7 +11,7 @@ using Microsoft.Extensions.Options;
 namespace Denomica.OpenAI.Extensions.Text
 {
     /// <summary>
-    /// A rule-based chunking service that treats <see cref="MaxChunkSize"/> as an approximate token budget.
+    /// A rule-based chunking service that treats the configured maximum chunk size as an approximate token budget.
     /// Produces structure-aware chunks with optional overlap, without using an LLM.
     /// </summary>
     /// <remarks>
@@ -37,14 +37,6 @@ namespace Denomica.OpenAI.Extensions.Text
 
         private readonly SemanticChunkingServiceOptions Options;
 
-        /// <inheritdoc/>
-        public int MaxChunkSize
-        {
-            get => this.Options.MaxChunkSize;
-            set => this.Options.MaxChunkSize = value;
-        }
-
-
         // -------------------------------------------------------------------------
         // Heading detection
         // -------------------------------------------------------------------------
@@ -62,16 +54,6 @@ namespace Denomica.OpenAI.Extensions.Text
         // -------------------------------------------------------------------------
         // Public API
         // -------------------------------------------------------------------------
-
-        /// <inheritdoc/>
-        public async IAsyncEnumerable<string> GetChunksAsync(string input)
-        {
-            if (string.IsNullOrWhiteSpace(input)) yield break;
-
-            using var ms = new MemoryStream(Encoding.UTF8.GetBytes(input));
-            await foreach (var chunk in GetChunksAsync(ms))
-                yield return chunk;
-        }
 
         /// <inheritdoc/>
         public async IAsyncEnumerable<string> GetChunksAsync(Stream input)
@@ -92,7 +74,7 @@ namespace Denomica.OpenAI.Extensions.Text
             foreach (var block in blocks)
             {
                 // Oversized block: flush buffer, inject overlap, split by sentence
-                if (block.Tokens > MaxChunkSize)
+                if (block.Tokens > this.Options.MaxChunkSize)
                 {
                     if (buffer.Count > 0)
                     {
@@ -112,7 +94,7 @@ namespace Denomica.OpenAI.Extensions.Text
                 }
 
                 // Block fits in current buffer
-                if (bufferTokens + block.Tokens <= MaxChunkSize)
+                if (bufferTokens + block.Tokens <= this.Options.MaxChunkSize)
                 {
                     buffer.Add(block);
                     bufferTokens += block.Tokens;
@@ -275,13 +257,13 @@ namespace Denomica.OpenAI.Extensions.Text
                 var st = EstimateTokens(sentence);
 
                 // Single sentence too large to fit: emit it alone to avoid an infinite loop
-                if (acc.Count == 0 && st > MaxChunkSize)
+                if (acc.Count == 0 && st > this.Options.MaxChunkSize)
                 {
                     yield return BuildSentenceChunk(block.Heading, sentence);
                     continue;
                 }
 
-                if (accTokens + st > MaxChunkSize && acc.Count > 0)
+                if (accTokens + st > this.Options.MaxChunkSize && acc.Count > 0)
                 {
                     yield return BuildSentenceChunk(block.Heading, string.Join(" ", acc));
 

@@ -16,7 +16,7 @@ namespace Denomica.OpenAI.Extensions.Embeddings
     /// </summary>
     /// <remarks>This class utilizes an <see cref="EmbeddingClient"/> to generate embeddings for input text. 
     /// It supports chunking of input text through a chunking service, which can be resolved from the  provided <see
-    /// cref="IServiceProvider"/> or defaults to a line-based chunking service if none is available.</remarks>
+    /// cref="IServiceProvider"/> or defaults to a <see cref="Denomica.OpenAI.Extensions.Text.SemanticChunkingService"/> if none is available.</remarks>
     public class EmbeddingProvider
     {
         /// <summary>
@@ -60,8 +60,9 @@ namespace Denomica.OpenAI.Extensions.Embeddings
         public async Task<EmbeddingResponse> GenerateEmbeddingAsync(string input)
         {
             var results = new List<EmbeddingResponse>();
-            IChunkingService chunker = this.Provider.GetService<IChunkingService>() ?? new LineChunkingService();
-            await foreach (var chunk in chunker.GetChunksAsync(input))
+            IChunkingService chunker = this.Provider.GetService<IChunkingService>() ?? new SemanticChunkingService();
+            using var ms = new System.IO.MemoryStream(Encoding.UTF8.GetBytes(input ?? string.Empty));
+            await foreach (var chunk in chunker.GetChunksAsync(ms))
             {
                 var result = await this.Client.GenerateEmbeddingAsync(chunk);
                 var embedding = result.GetEmbedding();
