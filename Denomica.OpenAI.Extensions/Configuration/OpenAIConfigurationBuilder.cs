@@ -75,9 +75,9 @@ namespace Denomica.OpenAI.Extensions.Configuration
                     }).Services
                     .AddSingleton<ChatClient>(sp =>
                     {
-                        var opt = sp.GetRequiredService<IOptions<ChatModelDeploymentOptions>>().Value;
-                        var client = this.CreateOpenAIClient(opt);
-                        return client.GetChatClient(opt.Name);
+                        var modelOptions = sp.GetRequiredService<IOptions<ChatModelDeploymentOptions>>().Value;
+                        var client = this.CreateOpenAIClient(modelOptions);
+                        return client.GetChatClient(modelOptions.Name);
                     })
                     .AddSingleton<ChatProvider>(sp =>
                     {
@@ -211,9 +211,10 @@ namespace Denomica.OpenAI.Extensions.Configuration
 
 
 
-        private OpenAIClient CreateOpenAIClient(ModelDeploymentOptions options)
+        private OpenAIClient CreateOpenAIClient(ModelDeploymentOptions modelOptions)
         {
-            return new AzureOpenAIClient(new Uri(options.Endpoint), new ApiKeyCredential(options.ApiKey ?? ""));
+            var clientOptions = new AzureOpenAIClientOptions { NetworkTimeout = modelOptions.NetworkTimeout };
+            return new AzureOpenAIClient(new Uri(modelOptions.Endpoint), new ApiKeyCredential(modelOptions.ApiKey ?? ""), clientOptions);
         }
 
     }

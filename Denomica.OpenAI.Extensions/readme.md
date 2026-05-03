@@ -43,6 +43,10 @@ var embedding = await embeddingProvider.GenerateEmbeddingAsync("Hello World!");
 
 The main hihglights in the published versions are outlined below.
 
+### v1.0.0-beta.8
+
+- Added support for configuring a network timeout when communicating with AI models.
+
 ### v1.0.0-beta.7
 
 - Simplified the `IChunkingService` service interface.

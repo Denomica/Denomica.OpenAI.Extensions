@@ -19,6 +19,11 @@ namespace Denomica.OpenAI.Extensions.Configuration
         public string Endpoint { get; set; } = string.Empty;
 
         /// <summary>
+        /// The network timeout to apply when communicating with the endpoint. If not set, the default timeout of the underlying client will be used.
+        /// </summary>
+        public TimeSpan? NetworkTimeout { get; set; }
+
+        /// <summary>
         /// The API key to use when accessing the endpoint.
         /// </summary>
         public string? ApiKey { get; set; } = string.Empty;

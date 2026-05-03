@@ -1,8 +1,12 @@
-﻿using Denomica.OpenAI.Extensions.Chat;
+﻿using Azure.AI.OpenAI;
+using Denomica.OpenAI.Extensions.Chat;
+using Denomica.OpenAI.Extensions.Configuration;
 using Denomica.OpenAI.Extensions.Embeddings;
 using Denomica.OpenAI.Extensions.Text;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using OpenAI.Chat;
+using System.ClientModel;
 
 var provider = new ServiceCollection()
     .AddOpenAIExtensions()
@@ -11,6 +15,7 @@ var provider = new ServiceCollection()
         opt.Endpoint = $"https://{args[0]}.openai.azure.com";
         opt.ApiKey = args[1];
         opt.Name = args[2];
+        opt.NetworkTimeout = TimeSpan.FromMinutes(5);
     })
     .WithEmbeddingModel((opt, sp) =>
     {
