@@ -1,4 +1,5 @@
 ﻿using Azure.AI.OpenAI;
+using Azure.Identity;
 using Denomica.OpenAI.Extensions.Chat;
 using Denomica.OpenAI.Extensions.Embeddings;
 using Denomica.OpenAI.Extensions.Text;
@@ -197,7 +198,7 @@ namespace Denomica.OpenAI.Extensions.Configuration
                     .AddSingleton<EmbeddingClient>(sp =>
                     {
                         var opt = sp.GetRequiredService<IOptions<EmbeddingModelDeploymentOptions>>().Value;
-                        var client = new AzureOpenAIClient(new Uri(opt.Endpoint), new ApiKeyCredential(opt.ApiKey ?? ""));
+                        var client = this.CreateOpenAIClient(opt);
                         return client.GetEmbeddingClient(opt.Name);
                     })
                     .AddSingleton<EmbeddingProvider>(sp =>
@@ -214,7 +215,16 @@ namespace Denomica.OpenAI.Extensions.Configuration
         private OpenAIClient CreateOpenAIClient(ModelDeploymentOptions modelOptions)
         {
             var clientOptions = new AzureOpenAIClientOptions { NetworkTimeout = modelOptions.NetworkTimeout };
-            return new AzureOpenAIClient(new Uri(modelOptions.Endpoint), new ApiKeyCredential(modelOptions.ApiKey ?? ""), clientOptions);
+            if (!string.IsNullOrWhiteSpace(modelOptions.ApiKey))
+            {
+                return new AzureOpenAIClient(new Uri(modelOptions.Endpoint), new ApiKeyCredential(modelOptions.ApiKey), clientOptions);
+            }
+
+            // Managed identity and developer authentication must remain available when deployments disable
+            // shared API keys, while an explicitly supplied credential still takes precedence for callers
+            // that need a custom authentication chain.
+            var tokenCredential = modelOptions.TokenCredential ?? new DefaultAzureCredential();
+            return new AzureOpenAIClient(new Uri(modelOptions.Endpoint), tokenCredential, clientOptions);
         }
 
     }

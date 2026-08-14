@@ -2,6 +2,7 @@
 using Denomica.OpenAI.Extensions.Configuration;
 using Denomica.OpenAI.Extensions.Embeddings;
 using Microsoft.Extensions.DependencyInjection;
+using Azure.Core;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -70,6 +71,25 @@ namespace Denomica.OpenAI.Extensions.Tests
             Assert.IsNotNull(chat, "Chat provider service must not be null");
         }
 
+        [TestMethod]
+        public void ConfigureServices04_UsesExplicitTokenCredentialWithoutApiKey()
+        {
+            var credential = new TestTokenCredential();
+            var provider = new ServiceCollection()
+                .AddOpenAIExtensions()
+                .WithChatModel((opt, sp) =>
+                {
+                    opt.Endpoint = "https://foo-hub.openai.azure.com";
+                    opt.TokenCredential = credential;
+                    opt.Name = "chat-model";
+                })
+                .Services
+                .BuildServiceProvider();
+
+            var chat = provider.GetService<ChatProvider>();
+            Assert.IsNotNull(chat, "Chat provider service must be created with a token credential.");
+        }
+
     }
 
 
@@ -81,5 +101,18 @@ namespace Denomica.OpenAI.Extensions.Tests
         }
 
         public EmbeddingProvider Provider { get; private set; }
+    }
+
+    internal sealed class TestTokenCredential : TokenCredential
+    {
+        public override AccessToken GetToken(TokenRequestContext requestContext, CancellationToken cancellationToken)
+        {
+            return new AccessToken("test-token", DateTimeOffset.UtcNow.AddMinutes(5));
+        }
+
+        public override ValueTask<AccessToken> GetTokenAsync(TokenRequestContext requestContext, CancellationToken cancellationToken)
+        {
+            return ValueTask.FromResult(this.GetToken(requestContext, cancellationToken));
+        }
     }
 }

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Azure.Core;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -26,7 +27,12 @@ namespace Denomica.OpenAI.Extensions.Configuration
         /// <summary>
         /// The API key to use when accessing the endpoint.
         /// </summary>
-        public string? ApiKey { get; set; } = string.Empty;
+        public string? ApiKey { get; set; }
+
+        /// <summary>
+        /// The token credential to use when an API key is not configured.
+        /// </summary>
+        public TokenCredential? TokenCredential { get; set; }
 
         /// <summary>
         /// The name of the deployed model.

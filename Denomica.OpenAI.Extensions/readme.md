@@ -43,6 +43,10 @@ var embedding = await embeddingProvider.GenerateEmbeddingAsync("Hello World!");
 
 The main hihglights in the published versions are outlined below.
 
+### v1.0.0-beta.9
+
+- Added support for authenticating with an explicit Azure token credential or `DefaultAzureCredential` when an API key is not configured. This applies to both chat and embedding clients.
+
 ### v1.0.0-beta.8
 
 - Added support for configuring a network timeout when communicating with AI models.
